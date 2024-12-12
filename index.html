@@ -1,47 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Token Data Display</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Most Viewed Tokens</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
-  <h1>Token Data</h1>
-  <div id="output"></div> <!-- This is where the token data will be displayed -->
+    <h1>Most Viewed</h1>
+    <div class="container">
+        <h2>Most Viewed in the Past 24 Hours</h2>
+        <table id="recentTokens">
+            <thead>
+                <tr>
+                    <th>Mint</th>
+                    <th>Name</th>
+                    <th>User Visits</th>
+                    <th>Visits</th>
+                    <th>Score</th>
+                    <th>Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-  <script>
-    // Fetch data from the API
-    fetch('https://api.dexscreener.com/token-boosts/top/v1')
-      .then(response => response.json()) // Parse the JSON response
-      .then(data => {
-        console.log("API Response:", data); // Log the full API response
+    <script>
+        const apiHost = 'https://api.rugcheck.xyz/v1';
 
-        // Check if the response contains any data
-        const output = document.getElementById('output');
-        if (data && Array.isArray(data)) {
-          data.forEach(token => {
-            const tokenElement = document.createElement('div');
-            tokenElement.innerHTML = `
-              <strong>URL:</strong> <a href="${token.url || 'N/A'}" target="_blank">${token.url || 'N/A'}</a><br>
-              <strong>ChainId:</strong> ${token.chainId || 'N/A'}<br>
-              <strong>Token Address:</strong> ${token.tokenAddress || 'N/A'}<br>
-              <strong>Description:</strong> ${token.description || 'N/A'}<br>
-              <strong>Total Amount:</strong> ${token.totalAmount || 'N/A'}<br>
-              <strong>Amount:</strong> ${token.amount || 'N/A'}<br>
-              <strong>Level:</strong> <a href="https://rugcheck.xyz/tokens/${token.tokenAddress || 'N/A'}" target="_blank">https://rugcheck.xyz/tokens/${token.tokenAddress || 'N/A'}</a><br>
-              <hr>
-            `;
-            output.appendChild(tokenElement);
-          });
-        } else {
-          output.textContent = "No relevant token data found in the response.";
+        // Function to fetch and display data
+        async function fetchAndDisplay(endpoint, tableId) {
+            const tableBody = document.querySelector(`#${tableId} tbody`);
+            try {
+                const response = await fetch(`${apiHost}${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                // Clear loading row
+                tableBody.innerHTML = '';
+
+                // Populate table with filtered and formatted data
+                data.forEach(token => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${token.mint}</td>
+                        <td>${token.metadata?.name || 'N/A'}</td>
+                        <td>${token.user_visits || 0}</td>
+                        <td>${token.visits || 0}</td>
+                        <td>${token.score || 0}</td>
+                        <td><a href="https://rugcheck.xyz/tokens/${token.mint}" target="_blank">Level</a></td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="error">Error fetching data: ${error.message}</td></tr>`;
+            }
         }
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        const output = document.getElementById('output');
-        output.textContent = "Error fetching data.";
-      });
-  </script>
+
+        // Fetch most viewed tokens
+        fetchAndDisplay('/stats/recent', 'recentTokens');
+    </script>
 </body>
 </html>
