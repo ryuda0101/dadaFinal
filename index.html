@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Most Viewed Tokens</title>
+    <title>Token Data Display</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,49 +16,76 @@
         .error {
             color: red;
         }
-        table {
+        a {
+            word-break: break-all;
+        }
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            border-collapse: collapse;
+            background: #f4f4f4;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
         }
-        table, th, td {
-            border: 1px solid black;
+        .header a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #333;
         }
-        th, td {
-            padding: 8px;
-            text-align: left;
+        .header a:hover {
+            text-decoration: underline;
         }
-        th {
-            background-color: #f4f4f4;
+        .toggle-content {
+            display: none;
+            margin-top: 60px;
+        }
+        .show {
+            display: block;
+        }
+        .to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .to-top:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1>Most Viewed</h1>
-    <div class="container">
-        <h2>Most Viewed in the Past 24 Hours</h2>
-        <table id="recentTokens">
-            <thead>
-                <tr>
-                    <th>Mint</th>
-                    <th>Name</th>
-                    <th>User Visits</th>
-                    <th>Visits</th>
-                    <th>Score</th>
-                    <th>Level</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td colspan="6">Loading...</td></tr>
-            </tbody>
-        </table>
+    <div class="header">
+        <a href="#mostViewed">Most Viewed Tokens</a>
+        <a href="#additionalData">Additional Token Data</a>
     </div>
+
+    <div class="container" id="mostViewed">
+        <h2>Most Viewed Tokens in the Past 24 Hours</h2>
+        <button onclick="toggleContent('recentTokens')">Toggle Content</button>
+        <div id="recentTokens" class="toggle-content">Loading...</div>
+    </div>
+
+    <div class="container" id="additionalData">
+        <h2>Additional Token Data</h2>
+        <button onclick="toggleContent('output')">Toggle Content</button>
+        <div id="output" class="toggle-content">Loading...</div>
+    </div>
+
+    <div class="to-top" onclick="scrollToTop()">&#8679;</div>
 
     <script>
         const apiHost = 'https://api.rugcheck.xyz/v1';
 
-        // Function to fetch and display data
-        async function fetchAndDisplay(endpoint, tableId) {
-            const tableBody = document.querySelector(`#${tableId} tbody`);
+        // Function to fetch and display most viewed tokens
+        async function fetchMostViewedTokens(endpoint, outputId) {
+            const output = document.getElementById(outputId);
             try {
                 const response = await fetch(`${apiHost}${endpoint}`);
                 if (!response.ok) {
@@ -66,31 +93,75 @@
                 }
                 const data = await response.json();
 
-                // Clear loading row
-                tableBody.innerHTML = '';
+                // Clear loading text
+                output.innerHTML = '';
 
-                // Populate table with filtered and formatted data
+                // Populate data
                 data.forEach(token => {
-                    const row = document.createElement('tr');
-
-                    row.innerHTML = `
-                        <td>${token.mint}</td>
-                        <td>${token.metadata?.name || 'N/A'}</td>
-                        <td>${token.user_visits || 0}</td>
-                        <td>${token.visits || 0}</td>
-                        <td>${token.score || 0}</td>
-                        <td><a href="https://rugcheck.xyz/tokens/${token.mint}" target="_blank">Level</a></td>
+                    const tokenElement = document.createElement('div');
+                    tokenElement.innerHTML = `
+                        <strong>Mint:</strong> ${token.mint}<br>
+                        <strong>Name:</strong> ${token.metadata?.name || 'N/A'}<br>
+                        <strong>User Visits:</strong> ${token.user_visits || 0}<br>
+                        <strong>Visits:</strong> ${token.visits || 0}<br>
+                        <strong>Score:</strong> ${token.score || 0}<br>
+                        <strong>Level:</strong> <a href="https://rugcheck.xyz/tokens/${token.mint}" target="_blank">https://rugcheck.xyz/tokens/${token.mint}</a><br>
+                        <hr>
                     `;
-
-                    tableBody.appendChild(row);
+                    output.appendChild(tokenElement);
                 });
             } catch (error) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="error">Error fetching data: ${error.message}</td></tr>`;
+                output.innerHTML = `<div class="error">Error fetching data: ${error.message}</div>`;
             }
         }
 
-        // Fetch most viewed tokens
-        fetchAndDisplay('/stats/recent', 'recentTokens');
+        // Fetch additional token data
+        async function fetchAdditionalTokenData(endpoint, outputId) {
+            const output = document.getElementById(outputId);
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                // Clear loading text
+                output.innerHTML = '';
+
+                // Populate data
+                data.forEach(token => {
+                    const tokenElement = document.createElement('div');
+                    tokenElement.innerHTML = `
+                        <strong>URL:</strong> <a href="${token.url || 'N/A'}" target="_blank">${token.url || 'N/A'}</a><br>
+                        <strong>ChainId:</strong> ${token.chainId || 'N/A'}<br>
+                        <strong>Token Address:</strong> ${token.tokenAddress || 'N/A'}<br>
+                        <strong>Description:</strong> ${token.description || 'N/A'}<br>
+                        <strong>Total Amount:</strong> ${token.totalAmount || 'N/A'}<br>
+                        <strong>Amount:</strong> ${token.amount || 'N/A'}<br>
+                        <strong>Level:</strong> <a href="https://rugcheck.xyz/tokens/${token.tokenAddress || 'N/A'}" target="_blank">https://rugcheck.xyz/tokens/${token.tokenAddress || 'N/A'}</a><br>
+                        <hr>
+                    `;
+                    output.appendChild(tokenElement);
+                });
+            } catch (error) {
+                output.innerHTML = `<div class="error">Error fetching data: ${error.message}</div>`;
+            }
+        }
+
+        // Toggle content visibility
+        function toggleContent(contentId) {
+            const content = document.getElementById(contentId);
+            content.classList.toggle('show');
+        }
+
+        // Scroll to top
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Fetch and display data
+        fetchMostViewedTokens('/stats/recent', 'recentTokens');
+        fetchAdditionalTokenData('https://api.dexscreener.com/token-boosts/top/v1', 'output');
     </script>
 </body>
 </html>
